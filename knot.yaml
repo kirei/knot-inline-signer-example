@@ -1,0 +1,107 @@
+# See knot.conf(5) or refer to the server documentation.
+
+server:
+
+    rundir: "/rundir"
+    user: knot:knot
+    listen: [ 0.0.0.0@53, ::@53 ]
+
+
+database:
+
+    storage: "/storage"
+
+
+remote:
+
+  - id: resolver
+    address: [8.8.8.8, 8.8.4.4]
+
+  - id: ns1.named.se
+    address: [91.206.174.4]
+
+
+acl:
+
+  - id: localhost
+    address: [127.0.0.1]
+    action: transfer
+
+  - id: any
+    address: [0.0.0.0/0, "::/0"]
+    action: transfer
+
+
+keystore:
+
+  - id: default
+    backend: pem
+
+
+submission:
+
+  - id: resolver
+    check-interval: 300s
+    parent: resolver
+
+
+policy:
+
+  - id: p256
+    algorithm: ECDSAP256SHA256
+    ksk-lifetime: 0
+    zsk-lifetime: 90d
+    nsec3: true
+    nsec3-iterations: 0
+    nsec3-salt-length: 0
+    keystore: default
+    dnskey-ttl: 3600
+    propagation-delay: 30m
+    rrsig-lifetime: 14d
+    rrsig-refresh: 10d
+    reproducible-signing: true
+    ksk-submission: resolver
+
+
+template:
+
+  - id: default
+    storage: "/storage/zones"
+    file: "%s"
+
+  - id: catalog
+    storage: "/storage/zones"
+    file: "%s"
+    serial-policy: unixtime
+    journal-content: all
+    zonefile-load: difference-no-serial
+    zonefile-sync: -1
+    semantic-checks: true
+    acl: [localhost, any]
+    dnssec-signing: off
+    catalog-role: generate
+
+  - id: default_signed_axfr
+    storage: "/storage/zones"
+    file: "%s"
+    serial-policy: unixtime
+    journal-content: all
+    zonefile-load: difference-no-serial
+    zonefile-sync: -1
+    semantic-checks: true
+    acl: [localhost, any]
+    zonemd-generate: zonemd-sha384
+    catalog-role: member
+    catalog-zone: test.catalog
+    master: [ns1.named.se]
+
+
+zone:
+
+  - domain: test.catalog
+    template: catalog
+
+  - domain: test.nxdomain.se
+    template: default_signed_axfr
+    dnssec-signing: on
+    dnssec-policy: p256

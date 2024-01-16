@@ -1,0 +1,27 @@
+version: '3'
+
+volumes:
+  storage:
+    name: knot_storage
+
+services:
+  knot:
+    image: cznic/knot:latest
+    restart: unless-stopped
+    entrypoint: /sbin/knotd
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      #- config:/config
+      - storage:/storage
+    configs:
+      - source: knot_config
+        target: /config/knot.conf
+        uid: '0'
+        gid: '0'
+        mode: 0444
+
+configs:
+  knot_config:
+    file: ./knot.yaml
